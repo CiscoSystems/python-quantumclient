@@ -167,6 +167,8 @@ class Client(object):
     security_group_path = "/security-groups/%s"
     security_group_rules_path = "/security-group-rules"
     security_group_rule_path = "/security-group-rules/%s"
+    profiles_path = "/profiles"
+    profile_path = "/profiles/%s"
 
     @APIParamsCall
     def get_quotas_tenant(self, **_params):
@@ -473,6 +475,42 @@ class Client(object):
         """
         return self.get(self.security_group_rule_path % (security_group_rule),
                         params=_params)
+
+    @APIParamsCall
+    def list_profiles(self, **_params):
+        """
+        Fetches a list of all profiles for a tenant
+        """
+        # Pass filters in "params" argument to do_request
+        return self.get(self.profiles_path, params=_params)
+
+    @APIParamsCall
+    def show_profile(self, profile, **_params):
+        """
+            Fetches information of a certain profile
+        """
+        return self.get(self.profile_path % (profile), params=_params)
+
+    @APIParamsCall
+    def create_profile(self, body=None):
+        """
+        Creates a new profile
+        """
+        return self.post(self.profiles_path, body=body)
+
+    @APIParamsCall
+    def update_profile(self, profile, body=None):
+        """
+        Updates a profile
+        """
+        return self.put(self.profile_path % (profile), body=body)
+
+    @APIParamsCall
+    def delete_profile(self, profile):
+        """
+        Deletes the specified profile
+        """
+        return self.delete(self.profile_path % (profile))
 
     def __init__(self, **kwargs):
         """ Initialize a new client for the Quantum v2.0 API. """
