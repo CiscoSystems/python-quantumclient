@@ -67,7 +67,7 @@ class CreateProfile(CreateCommand):
             help='Range for the Segment')
         parser.add_argument(
             '--multicast_ip_range',
-            help='Multicast IP Range')
+            help='Multicast IPv4 Range')
 
     def args2body(self, parsed_args):
         body = {'profile': {
