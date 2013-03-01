@@ -169,6 +169,12 @@ class Client(object):
     security_group_rule_path = "/security-group-rules/%s"
     profiles_path = "/profiles"
     profile_path = "/profiles/%s"
+    network_profiles_path = "/network_profiles"
+    network_profile_path = "/network_profiles/%s"
+    policy_profiles_path = "/policy_profiles"
+    policy_profile_path = "/policy_profiles/%s"
+
+
 
     @APIParamsCall
     def get_quotas_tenant(self, **_params):
@@ -511,6 +517,83 @@ class Client(object):
         Deletes the specified profile
         """
         return self.delete(self.profile_path % (profile))
+
+    @APIParamsCall
+    def list_network_profiles(self, **params):
+        """
+        Fetches a list of all network profiles for a tenant
+        :param _params:
+        :return:
+        """
+        return self.get(self.network_profiles_path, params=params)
+
+    @APIParamsCall
+    def show_network_profile(self, profile, **params):
+        """
+        Fetches information about a certain network profile
+        :param profile:
+        :param _params:
+        :return:
+        """
+        return self.get(self.network_profile_path % (profile), params=params)
+
+    @APIParamsCall
+    def create_network_profile(self, body=None):
+        """
+        Create new Network Profile
+        :param body:
+        :return:
+        """
+        return self.post(self.network_profiles_path, body=body)
+
+    @APIParamsCall
+    def update_network_profile(self, profile, body=None):
+        """
+        Update a network profile
+        :param profile:
+        :param body:
+        :return:
+        """
+        return self.put(self.network_profile_path % (profile), body=body)
+
+    @APIParamsCall
+    def delete_network_profile(self, profile):
+        """
+        Delete the network profile
+        :param profile:
+        :return:
+        """
+        return self.delete(self.network_profile_path % profile)
+
+    @APIParamsCall
+    def list_policy_profiles(self, **params):
+        """
+        Fetches a list of all network profiles for a tenant
+        :param _params:
+        :return:
+        """
+        return self.get(self.policy_profiles_path, params=params)
+
+    @APIParamsCall
+    def show_policy_profile(self, profile, **params):
+        """
+        Fetches information about a certain network profile
+        :param profile:
+        :param _params:
+        :return:
+        """
+        return self.get(self.policy_profile_path % (profile), params=params)
+
+    @APIParamsCall
+    def update_policy_profile(self, profile, body=None):
+        """
+        Update a policy profile
+        :param profile:
+        :param body:
+        :return:
+        """
+        return self.put(self.policy_profile_path % (profile), body=body)
+
 
     def __init__(self, **kwargs):
         """ Initialize a new client for the Quantum v2.0 API. """
