@@ -167,8 +167,8 @@ class Client(object):
     security_group_path = "/security-groups/%s"
     security_group_rules_path = "/security-group-rules"
     security_group_rule_path = "/security-group-rules/%s"
-    profiles_path = "/profiles"
-    profile_path = "/profiles/%s"
+    credentials_path = "/credentials"
+    credential_path = "/credentials/%s"
     network_profiles_path = "/network_profiles"
     network_profile_path = "/network_profiles/%s"
     policy_profiles_path = "/policy_profiles"
@@ -483,40 +483,40 @@ class Client(object):
                         params=_params)
 
     @APIParamsCall
-    def list_profiles(self, **_params):
+    def list_credentials(self, **_params):
         """
-        Fetches a list of all profiles for a tenant
+        Fetches a list of all credentials for a tenant
         """
         # Pass filters in "params" argument to do_request
-        return self.get(self.profiles_path, params=_params)
+        return self.get(self.credentials_path, params=_params)
 
     @APIParamsCall
-    def show_profile(self, profile, **_params):
+    def show_credential(self, credential, **_params):
         """
-            Fetches information of a certain profile
+            Fetches information of a certain credential
         """
-        return self.get(self.profile_path % (profile), params=_params)
+        return self.get(self.credential_path % (credential), params=_params)
 
     @APIParamsCall
-    def create_profile(self, body=None):
+    def create_credential(self, body=None):
         """
-        Creates a new profile
+        Creates a new credential
         """
-        return self.post(self.profiles_path, body=body)
+        return self.post(self.credentials_path, body=body)
 
     @APIParamsCall
-    def update_profile(self, profile, body=None):
+    def update_credential(self, credential, body=None):
         """
-        Updates a profile
+        Updates a credential
         """
-        return self.put(self.profile_path % (profile), body=body)
+        return self.put(self.credential_path % (credential), body=body)
 
     @APIParamsCall
-    def delete_profile(self, profile):
+    def delete_credential(self, credential):
         """
-        Deletes the specified profile
+        Deletes the specified credential
         """
-        return self.delete(self.profile_path % (profile))
+        return self.delete(self.credential_path % (credential))
 
     @APIParamsCall
     def list_network_profiles(self, **params):

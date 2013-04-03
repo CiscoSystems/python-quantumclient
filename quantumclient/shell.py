@@ -145,14 +145,14 @@ COMMAND_V2 = {
         'quantumclient.quantum.v2_0.securitygroup.CreateSecurityGroupRule'),
     'security-group-rule-delete': utils.import_class(
         'quantumclient.quantum.v2_0.securitygroup.DeleteSecurityGroupRule'),
-    'profile-list': utils.import_class(
-        'quantumclient.quantum.v2_0.profile.ListProfile'),
-    'profile-show': utils.import_class(
-        'quantumclient.quantum.v2_0.profile.ShowProfile'),
-    'profile-create': utils.import_class(
-        'quantumclient.quantum.v2_0.profile.CreateProfile'),
-    'profile-delete': utils.import_class(
-        'quantumclient.quantum.v2_0.profile.DeleteProfile'),
+    'credential-list': utils.import_class(
+        'quantumclient.quantum.v2_0.credential.ListCredential'),
+    'credential-show': utils.import_class(
+        'quantumclient.quantum.v2_0.credential.ShowCredential'),
+    'credential-create': utils.import_class(
+        'quantumclient.quantum.v2_0.credential.CreateCredential'),
+    'credential-delete': utils.import_class(
+        'quantumclient.quantum.v2_0.credential.DeleteCredential'),
     'network-profile-list': utils.import_class(
         'quantumclient.quantum.v2_0.networkprofile.ListNetworkProfile'),
     'network-profile-show': utils.import_class(
