@@ -31,7 +31,9 @@ class ListNetworkProfile(ListCommand):
     resource = RESOURCE
     log = logging.getLogger(__name__ + '.ListNetworkProfile')
     _formatters = {}
-    list_columns = ['id', 'name', 'segment_type', 'segment_range', 'multicast_ip_index', 'multicast_ip_range']
+    list_columns = ['id', 'name', 'segment_type', 'segment_range', 
+                    'physical_network', 'multicast_ip_index',
+                    'multicast_ip_range']
 
 
 class ShowNetworkProfile(ShowCommand):
@@ -53,6 +55,7 @@ class CreateNetworkProfile(CreateCommand):
         parser.add_argument('name', help='Name for Network Profile')
         parser.add_argument('segment_type', choices=SEGMENT_TYPE_CHOICES, help='Segment type')
         parser.add_argument('--segment_range', help='Range for the Segment')
+        parser.add_argument('--physical_network', help='Name for the Physical Network')
         parser.add_argument('--multicast_ip_range', help='Multicast IPv4 Range')
         parser.add_argument("--add-tenant", help="Add tenant to the network profile")
 
@@ -62,6 +65,8 @@ class CreateNetworkProfile(CreateCommand):
             body['network_profile'].update({'segment_type': parsed_args.segment_type})
         if parsed_args.segment_range:
             body['network_profile'].update({'segment_range': parsed_args.segment_range})
+        if parsed_args.physical_network:
+            body['network_profile'].update({'physical_network': parsed_args.physical_network})
         if parsed_args.multicast_ip_range:
             body['network_profile'].update({'multicast_ip_range': parsed_args.multicast_ip_range})
         if parsed_args.add_tenant:
