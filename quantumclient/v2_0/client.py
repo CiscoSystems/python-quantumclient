@@ -171,8 +171,10 @@ class Client(object):
     credential_path = "/credentials/%s"
     network_profiles_path = "/network_profiles"
     network_profile_path = "/network_profiles/%s"
+    network_profile_bindings_path = "/network_profile_bindings"
     policy_profiles_path = "/policy_profiles"
     policy_profile_path = "/policy_profiles/%s"
+    policy_profile_bindings_path = "/policy_profile_bindings"
 
 
 
@@ -564,6 +566,15 @@ class Client(object):
         :return:
         """
         return self.delete(self.network_profile_path % profile)
+
+    @APIParamsCall
+    def list_policy_profile_bindings(self, **params):
+        """	
+        Fetches a list of all tenants associated for a policy profile.
+        :param _params:
+        :return:
+        """
+        return self.get(self.policy_profile_bindings_path, params=params)
 
     @APIParamsCall
     def list_policy_profiles(self, **params):
