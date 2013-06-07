@@ -520,6 +520,14 @@ class Client(object):
         """
         return self.delete(self.credential_path % (credential))
 
+    def list_network_profile_bindings(self, **params):
+        """     
+        Fetches a list of all tenants associated for a network profile.
+        :param _params:
+        :return:
+        """
+        return self.get(self.network_profile_bindings_path, params=params)
+
     @APIParamsCall
     def list_network_profiles(self, **params):
         """
