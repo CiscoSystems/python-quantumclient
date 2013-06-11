@@ -14,14 +14,11 @@
 #
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-import argparse
 import logging
 
-from quantumclient.quantum import v2_0 as quantumv20
 from quantumclient.quantum.v2_0 import CreateCommand
 from quantumclient.quantum.v2_0 import DeleteCommand
 from quantumclient.quantum.v2_0 import ListCommand
-from quantumclient.quantum.v2_0 import QuantumCommand
 from quantumclient.quantum.v2_0 import ShowCommand
 
 
@@ -78,7 +75,7 @@ class CreateCredential(CreateCommand):
         return body
 
 
-class DeleteCredential(quantumv20.DeleteCommand):
+class DeleteCredential(DeleteCommand):
     """Delete a  given credential"""
 
     log = logging.getLogger(__name__ + '.DeleteCredential')

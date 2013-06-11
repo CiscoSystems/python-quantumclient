@@ -16,9 +16,14 @@
 #@author Sergey Sudakovich, Cisco Systems
 
 import logging
-from quantumclient.quantum.v2_0 import ListCommand, ShowCommand, CreateCommand, DeleteCommand, UpdateCommand, \
-                                       QuantumCommand, parse_args_to_dict
-from quantumclient.common import exceptions
+
+from quantumclient.quantum.v2_0 import QuantumCommand
+from quantumclient.quantum.v2_0 import CreateCommand
+from quantumclient.quantum.v2_0 import UpdateCommand
+from quantumclient.quantum.v2_0 import DeleteCommand
+from quantumclient.quantum.v2_0 import ListCommand
+from quantumclient.quantum.v2_0 import ShowCommand
+from quantumclient.quantum.v2_0 import parse_args_to_dict
 
 RESOURCE = 'network_profile'
 SEGMENT_TYPE_CHOICES = ['vlan', 'vxlan']
