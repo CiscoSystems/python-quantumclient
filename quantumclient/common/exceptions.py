@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from quantumclient.common import _
+
 """
 Quantum base exception handling.
 """
@@ -92,7 +94,7 @@ class Unauthorized(QuantumClientException):
     """
     HTTP 401 - Unauthorized: bad credentials.
     """
-    pass
+    message = _("Unauthorized: bad credentials.")
 
 
 class Forbidden(QuantumClientException):
@@ -100,12 +102,21 @@ class Forbidden(QuantumClientException):
     HTTP 403 - Forbidden: your credentials don't give you access to this
     resource.
     """
-    pass
+    message = _("Forbidden: your credentials don't give you access to this "
+                "resource.")
 
 
 class EndpointNotFound(QuantumClientException):
     """Could not find Service or Region in Service Catalog."""
-    pass
+    message = _("Could not find Service or Region in Service Catalog.")
+
+
+class EndpointTypeNotFound(QuantumClientException):
+    """Could not find endpoint type in Service Catalog."""
+
+    def __str__(self):
+        msg = "Could not find endpoint type %s in Service Catalog."
+        return msg % repr(self.message)
 
 
 class AmbiguousEndpoints(QuantumClientException):
@@ -116,8 +127,16 @@ class AmbiguousEndpoints(QuantumClientException):
 
 
 class QuantumCLIError(QuantumClientException):
-    """ Exception raised when command line parsing fails """
+    """Exception raised when command line parsing fails."""
     pass
+
+
+class RequestURITooLong(QuantumClientException):
+    """Raised when a request fails with HTTP error 414."""
+
+    def __init__(self, **kwargs):
+        self.excess = kwargs.get('excess', 0)
+        super(RequestURITooLong, self).__init__(**kwargs)
 
 
 class ConnectionFailed(QuantumClientException):
@@ -125,7 +144,7 @@ class ConnectionFailed(QuantumClientException):
 
 
 class BadInputError(Exception):
-    """Error resulting from a client sending bad input to a server"""
+    """Error resulting from a client sending bad input to a server."""
     pass
 
 
@@ -148,7 +167,8 @@ class InvalidContentType(Invalid):
 
 class UnsupportedVersion(Exception):
     """Indicates that the user is trying to use an unsupported
-       version of the API"""
+       version of the API
+    """
     pass
 
 

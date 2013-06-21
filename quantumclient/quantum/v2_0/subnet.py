@@ -21,11 +21,6 @@ import logging
 from quantumclient.common import exceptions
 from quantumclient.common import utils
 from quantumclient.quantum import v2_0 as quantumv20
-from quantumclient.quantum.v2_0 import CreateCommand
-from quantumclient.quantum.v2_0 import DeleteCommand
-from quantumclient.quantum.v2_0 import ListCommand
-from quantumclient.quantum.v2_0 import ShowCommand
-from quantumclient.quantum.v2_0 import UpdateCommand
 
 
 def _format_allocation_pools(subnet):
@@ -52,7 +47,7 @@ def _format_host_routes(subnet):
         return ''
 
 
-class ListSubnet(ListCommand):
+class ListSubnet(quantumv20.ListCommand):
     """List networks that belong to a given tenant."""
 
     resource = 'subnet'
@@ -61,16 +56,18 @@ class ListSubnet(ListCommand):
                    'dns_nameservers': _format_dns_nameservers,
                    'host_routes': _format_host_routes, }
     list_columns = ['id', 'name', 'cidr', 'allocation_pools']
+    pagination_support = True
+    sorting_support = True
 
 
-class ShowSubnet(ShowCommand):
+class ShowSubnet(quantumv20.ShowCommand):
     """Show information of a given subnet."""
 
     resource = 'subnet'
     log = logging.getLogger(__name__ + '.ShowSubnet')
 
 
-class CreateSubnet(CreateCommand):
+class CreateSubnet(quantumv20.CreateCommand):
     """Create a subnet for a given tenant."""
 
     resource = 'subnet'
@@ -95,7 +92,7 @@ class CreateSubnet(CreateCommand):
             help='gateway ip of this subnet')
         parser.add_argument(
             '--no-gateway',
-            default=False, action='store_true',
+            action='store_true',
             help='No distribution of gateway')
         parser.add_argument(
             '--allocation-pool', metavar='start=IP_ADDR,end=IP_ADDR',
@@ -157,14 +154,14 @@ class CreateSubnet(CreateCommand):
         return body
 
 
-class DeleteSubnet(DeleteCommand):
+class DeleteSubnet(quantumv20.DeleteCommand):
     """Delete a given subnet."""
 
     resource = 'subnet'
     log = logging.getLogger(__name__ + '.DeleteSubnet')
 
 
-class UpdateSubnet(UpdateCommand):
+class UpdateSubnet(quantumv20.UpdateCommand):
     """Update subnet's information."""
 
     resource = 'subnet'

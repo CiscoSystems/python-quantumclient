@@ -26,8 +26,9 @@ class ListSecurityGroup(quantumv20.ListCommand):
 
     resource = 'security_group'
     log = logging.getLogger(__name__ + '.ListSecurityGroup')
-    _formatters = {}
     list_columns = ['id', 'name', 'description']
+    pagination_support = True
+    sorting_support = True
 
 
 class ShowSecurityGroup(quantumv20.ShowCommand):
@@ -71,16 +72,42 @@ class DeleteSecurityGroup(quantumv20.DeleteCommand):
     allow_names = True
 
 
+class UpdateSecurityGroup(quantumv20.UpdateCommand):
+    """Update a given security group."""
+
+    log = logging.getLogger(__name__ + '.UpdateSecurityGroup')
+    resource = 'security_group'
+
+    def add_known_arguments(self, parser):
+        parser.add_argument(
+            '--name',
+            help='Name of security group')
+        parser.add_argument(
+            '--description',
+            help='description of security group')
+
+    def args2body(self, parsed_args):
+        body = {'security_group': {}}
+        if parsed_args.name:
+            body['security_group'].update(
+                {'name': parsed_args.name})
+        if parsed_args.description:
+            body['security_group'].update(
+                {'description': parsed_args.description})
+        return body
+
+
 class ListSecurityGroupRule(quantumv20.ListCommand):
     """List security group rules that belong to a given tenant."""
 
     resource = 'security_group_rule'
     log = logging.getLogger(__name__ + '.ListSecurityGroupRule')
-    _formatters = {}
     list_columns = ['id', 'security_group_id', 'direction', 'protocol',
-                    'source_ip_prefix', 'source_group_id']
+                    'remote_ip_prefix', 'remote_group_id']
     replace_rules = {'security_group_id': 'security_group',
-                     'source_group_id': 'source_group'}
+                     'remote_group_id': 'remote_group'}
+    pagination_support = True
+    sorting_support = True
 
     def get_parser(self, prog_name):
         parser = super(ListSecurityGroupRule, self).get_parser(prog_name)
@@ -106,6 +133,15 @@ class ListSecurityGroupRule(quantumv20.ListCommand):
             return
         quantum_client = self.get_client()
         search_opts = {'fields': ['id', 'name']}
+        if self.pagination_support:
+            page_size = parsed_args.page_size
+            if page_size:
+                search_opts.update({'limit': page_size})
+        sec_group_ids = set()
+        for rule in data:
+            for key in self.replace_rules:
+                sec_group_ids.add(rule[key])
+        search_opts.update({"id": sec_group_ids})
         secgroups = quantum_client.list_security_groups(**search_opts)
         secgroups = secgroups.get('security_groups', [])
         sg_dict = dict([(sg['id'], sg['name'])
@@ -172,16 +208,16 @@ class CreateSecurityGroupRule(quantumv20.CreateCommand):
             '--port_range_max',
             help=argparse.SUPPRESS)
         parser.add_argument(
-            '--source-ip-prefix',
+            '--remote-ip-prefix',
             help='cidr to match on')
         parser.add_argument(
-            '--source_ip_prefix',
+            '--remote_ip_prefix',
             help=argparse.SUPPRESS)
         parser.add_argument(
-            '--source-group-id', metavar='SOURCE_GROUP',
-            help='source security group name or id to apply rule')
+            '--remote-group-id', metavar='REMOTE_GROUP',
+            help='remote security group name or id to apply rule')
         parser.add_argument(
-            '--source_group_id',
+            '--remote_group_id',
             help=argparse.SUPPRESS)
 
     def args2body(self, parsed_args):
@@ -200,15 +236,15 @@ class CreateSecurityGroupRule(quantumv20.CreateCommand):
         if parsed_args.port_range_max:
             body['security_group_rule'].update(
                 {'port_range_max': parsed_args.port_range_max})
-        if parsed_args.source_ip_prefix:
+        if parsed_args.remote_ip_prefix:
             body['security_group_rule'].update(
-                {'source_ip_prefix': parsed_args.source_ip_prefix})
-        if parsed_args.source_group_id:
-            _source_group_id = quantumv20.find_resourceid_by_name_or_id(
+                {'remote_ip_prefix': parsed_args.remote_ip_prefix})
+        if parsed_args.remote_group_id:
+            _remote_group_id = quantumv20.find_resourceid_by_name_or_id(
                 self.get_client(), 'security_group',
-                parsed_args.source_group_id)
+                parsed_args.remote_group_id)
             body['security_group_rule'].update(
-                {'source_group_id': _source_group_id})
+                {'remote_group_id': _remote_group_id})
         if parsed_args.tenant_id:
             body['security_group_rule'].update(
                 {'tenant_id': parsed_args.tenant_id})

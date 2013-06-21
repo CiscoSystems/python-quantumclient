@@ -20,11 +20,6 @@ import logging
 
 from quantumclient.common import utils
 from quantumclient.quantum import v2_0 as quantumv20
-from quantumclient.quantum.v2_0 import CreateCommand
-from quantumclient.quantum.v2_0 import DeleteCommand
-from quantumclient.quantum.v2_0 import ListCommand
-from quantumclient.quantum.v2_0 import ShowCommand
-from quantumclient.quantum.v2_0 import UpdateCommand
 
 
 def _format_fixed_ips(port):
@@ -34,31 +29,32 @@ def _format_fixed_ips(port):
         return ''
 
 
-class ListPort(ListCommand):
+class ListPort(quantumv20.ListCommand):
     """List ports that belong to a given tenant."""
 
     resource = 'port'
     log = logging.getLogger(__name__ + '.ListPort')
     _formatters = {'fixed_ips': _format_fixed_ips, }
     list_columns = ['id', 'name', 'mac_address', 'fixed_ips']
+    pagination_support = True
+    sorting_support = True
 
 
-class ListRouterPort(ListCommand):
-    """List ports that belong to a given tenant, with specified router"""
+class ListRouterPort(quantumv20.ListCommand):
+    """List ports that belong to a given tenant, with specified router."""
 
     resource = 'port'
     log = logging.getLogger(__name__ + '.ListRouterPort')
     _formatters = {'fixed_ips': _format_fixed_ips, }
     list_columns = ['id', 'name', 'mac_address', 'fixed_ips']
+    pagination_support = True
+    sorting_support = True
 
     def get_parser(self, prog_name):
-        parser = super(ListCommand, self).get_parser(prog_name)
-        quantumv20.add_show_list_common_argument(parser)
+        parser = super(ListRouterPort, self).get_parser(prog_name)
         parser.add_argument(
             'id', metavar='router',
             help='ID or name of router to look up')
-        quantumv20.add_extra_argument(parser, 'filter_specs',
-                                      'filters options')
         return parser
 
     def get_data(self, parsed_args):
@@ -66,18 +62,18 @@ class ListRouterPort(ListCommand):
         quantum_client.format = parsed_args.request_format
         _id = quantumv20.find_resourceid_by_name_or_id(
             quantum_client, 'router', parsed_args.id)
-        parsed_args.filter_specs.append('--device_id=%s' % _id)
+        self.values_specs.append('--device_id=%s' % _id)
         return super(ListRouterPort, self).get_data(parsed_args)
 
 
-class ShowPort(ShowCommand):
+class ShowPort(quantumv20.ShowCommand):
     """Show information of a given port."""
 
     resource = 'port'
     log = logging.getLogger(__name__ + '.ShowPort')
 
 
-class CreatePort(CreateCommand):
+class CreatePort(quantumv20.CreateCommand):
     """Create a port for a given tenant."""
 
     resource = 'port'
@@ -89,11 +85,11 @@ class CreatePort(CreateCommand):
             help='name of this port')
         parser.add_argument(
             '--admin-state-down',
-            default=True, action='store_false',
+            dest='admin_state', action='store_false',
             help='set admin state up to false')
         parser.add_argument(
             '--admin_state_down',
-            action='store_false',
+            dest='admin_state', action='store_false',
             help=argparse.SUPPRESS)
         parser.add_argument(
             '--mac-address',
@@ -108,7 +104,7 @@ class CreatePort(CreateCommand):
             '--device_id',
             help=argparse.SUPPRESS)
         parser.add_argument(
-            '--fixed-ip',
+            '--fixed-ip', metavar='ip_address=IP_ADDR',
             action='append',
             help='desired IP for this port: '
             'subnet_id=<name_or_id>,ip_address=<ip>, '
@@ -129,7 +125,7 @@ class CreatePort(CreateCommand):
     def args2body(self, parsed_args):
         _network_id = quantumv20.find_resourceid_by_name_or_id(
             self.get_client(), 'network', parsed_args.network_id)
-        body = {'port': {'admin_state_up': parsed_args.admin_state_down,
+        body = {'port': {'admin_state_up': parsed_args.admin_state,
                          'network_id': _network_id, }, }
         if parsed_args.mac_address:
             body['port'].update({'mac_address': parsed_args.mac_address})
@@ -162,15 +158,27 @@ class CreatePort(CreateCommand):
         return body
 
 
-class DeletePort(DeleteCommand):
+class DeletePort(quantumv20.DeleteCommand):
     """Delete a given port."""
 
     resource = 'port'
     log = logging.getLogger(__name__ + '.DeletePort')
 
 
-class UpdatePort(UpdateCommand):
+class UpdatePort(quantumv20.UpdateCommand):
     """Update port's information."""
 
     resource = 'port'
     log = logging.getLogger(__name__ + '.UpdatePort')
+
+    def add_known_arguments(self, parser):
+        parser.add_argument(
+            '--no-security-groups',
+            action='store_true',
+            help='remove security groups from port')
+
+    def args2body(self, parsed_args):
+        body = {'port': {}}
+        if parsed_args.no_security_groups:
+            body['port'].update({'security_groups': None})
+        return body
