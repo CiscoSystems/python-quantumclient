@@ -20,8 +20,7 @@
 
 import logging
 
-from quantumclient.client import HTTPClient
-from quantumclient.common import exceptions as exc
+from quantumclient import client
 from quantumclient.quantum import client as quantum_client
 
 
@@ -50,15 +49,18 @@ class ClientManager(object):
 
     def __init__(self, token=None, url=None,
                  auth_url=None,
+                 endpoint_type=None,
                  tenant_name=None, tenant_id=None,
                  username=None, password=None,
                  region_name=None,
                  api_version=None,
-                 auth_strategy=None
+                 auth_strategy=None,
+                 insecure=False
                  ):
         self._token = token
         self._url = url
         self._auth_url = auth_url
+        self._endpoint_type = endpoint_type
         self._tenant_name = tenant_name
         self._tenant_id = tenant_id
         self._username = username
@@ -67,15 +69,18 @@ class ClientManager(object):
         self._api_version = api_version
         self._service_catalog = None
         self._auth_strategy = auth_strategy
+        self._insecure = insecure
         return
 
     def initialize(self):
         if not self._url:
-            httpclient = HTTPClient(username=self._username,
-                                    tenant_name=self._tenant_name,
-                                    password=self._password,
-                                    region_name=self._region_name,
-                                    auth_url=self._auth_url)
+            httpclient = client.HTTPClient(username=self._username,
+                                           tenant_name=self._tenant_name,
+                                           password=self._password,
+                                           region_name=self._region_name,
+                                           auth_url=self._auth_url,
+                                           endpoint_type=self._endpoint_type,
+                                           insecure=self._insecure)
             httpclient.authenticate()
             # Populate other password flow attributes
             self._token = httpclient.auth_token

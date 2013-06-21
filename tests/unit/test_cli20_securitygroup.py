@@ -21,10 +21,10 @@ import sys
 import mox
 
 from quantumclient.quantum.v2_0 import securitygroup
-from quantumclient.tests.unit import test_cli20
+from tests.unit import test_cli20
 
 
-class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
+class CLITestV20SecurityGroupsJSON(test_cli20.CLITestV20Base):
     def test_create_security_group(self):
         """Create security group: webservers."""
         resource = 'security_group'
@@ -61,7 +61,7 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         name = 'webservers'
         description = 'my webservers'
         myid = 'myid'
-        args = [name,  '--description', description]
+        args = [name, '--description', description]
         position_names = ['name', 'description']
         position_values = [name, description]
         self._test_create_resource(resource, cmd, name, myid, args,
@@ -72,6 +72,26 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         cmd = securitygroup.ListSecurityGroup(
             test_cli20.MyApp(sys.stdout), None)
         self._test_list_resources(resources, cmd, True)
+
+    def test_list_security_groups_pagination(self):
+        resources = "security_groups"
+        cmd = securitygroup.ListSecurityGroup(
+            test_cli20.MyApp(sys.stdout), None)
+        self._test_list_resources_with_pagination(resources, cmd)
+
+    def test_list_security_groups_sort(self):
+        resources = "security_groups"
+        cmd = securitygroup.ListSecurityGroup(
+            test_cli20.MyApp(sys.stdout), None)
+        self._test_list_resources(resources, cmd,
+                                  sort_key=["name", "id"],
+                                  sort_dir=["asc", "desc"])
+
+    def test_list_security_groups_limit(self):
+        resources = "security_groups"
+        cmd = securitygroup.ListSecurityGroup(
+            test_cli20.MyApp(sys.stdout), None)
+        self._test_list_resources(resources, cmd, page_size=1000)
 
     def test_show_security_group_id(self):
         resource = 'security_group'
@@ -98,8 +118,31 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         args = [myid]
         self._test_delete_resource(resource, cmd, myid, args)
 
+    def test_update_security_group(self):
+        """Update security group: myid --name myname --description desc."""
+        resource = 'security_group'
+        cmd = securitygroup.UpdateSecurityGroup(
+            test_cli20.MyApp(sys.stdout), None)
+        self._test_update_resource(resource, cmd, 'myid',
+                                   ['myid', '--name', 'myname',
+                                    '--description', 'mydescription'],
+                                   {'name': 'myname',
+                                    'description': 'mydescription'}
+                                   )
+
+    def test_update_security_group_with_unicode(self):
+        resource = 'security_group'
+        cmd = securitygroup.UpdateSecurityGroup(
+            test_cli20.MyApp(sys.stdout), None)
+        self._test_update_resource(resource, cmd, 'myid',
+                                   ['myid', '--name', u'\u7f51\u7edc',
+                                    '--description', u'\u7f51\u7edc'],
+                                   {'name': u'\u7f51\u7edc',
+                                    'description': u'\u7f51\u7edc'}
+                                   )
+
     def test_create_security_group_rule_full(self):
-        """Create security group rule"""
+        """Create security group rule."""
         resource = 'security_group_rule'
         cmd = securitygroup.CreateSecurityGroupRule(
             test_cli20.MyApp(sys.stdout), None)
@@ -109,19 +152,19 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         protocol = 'tcp'
         port_range_min = '22'
         port_range_max = '22'
-        source_ip_prefix = '10.0.0.0/24'
+        remote_ip_prefix = '10.0.0.0/24'
         security_group_id = '1'
-        source_group_id = '1'
-        args = ['--source_ip_prefix', source_ip_prefix, '--direction',
+        remote_group_id = '1'
+        args = ['--remote_ip_prefix', remote_ip_prefix, '--direction',
                 direction, '--ethertype', ethertype, '--protocol', protocol,
                 '--port_range_min', port_range_min, '--port_range_max',
-                port_range_max, '--source_group_id', source_group_id,
+                port_range_max, '--remote_group_id', remote_group_id,
                 security_group_id]
-        position_names = ['source_ip_prefix', 'direction', 'ethertype',
+        position_names = ['remote_ip_prefix', 'direction', 'ethertype',
                           'protocol', 'port_range_min', 'port_range_max',
-                          'source_group_id', 'security_group_id']
-        position_values = [source_ip_prefix, direction, ethertype, protocol,
-                           port_range_min, port_range_max, source_group_id,
+                          'remote_group_id', 'security_group_id']
+        position_values = [remote_ip_prefix, direction, ethertype, protocol,
+                           port_range_min, port_range_max, remote_group_id,
                            security_group_id]
         self._test_create_resource(resource, cmd, None, myid, args,
                                    position_names, position_values)
@@ -144,6 +187,38 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         securitygroup.ListSecurityGroupRule.extend_list(mox.IsA(list),
                                                         mox.IgnoreArg())
         self._test_list_resources(resources, cmd, True)
+
+    def test_list_security_group_rules_pagination(self):
+        resources = "security_group_rules"
+        cmd = securitygroup.ListSecurityGroupRule(
+            test_cli20.MyApp(sys.stdout), None)
+        self.mox.StubOutWithMock(securitygroup.ListSecurityGroupRule,
+                                 "extend_list")
+        securitygroup.ListSecurityGroupRule.extend_list(mox.IsA(list),
+                                                        mox.IgnoreArg())
+        self._test_list_resources_with_pagination(resources, cmd)
+
+    def test_list_security_group_rules_sort(self):
+        resources = "security_group_rules"
+        cmd = securitygroup.ListSecurityGroupRule(
+            test_cli20.MyApp(sys.stdout), None)
+        self.mox.StubOutWithMock(securitygroup.ListSecurityGroupRule,
+                                 "extend_list")
+        securitygroup.ListSecurityGroupRule.extend_list(mox.IsA(list),
+                                                        mox.IgnoreArg())
+        self._test_list_resources(resources, cmd,
+                                  sort_key=["name", "id"],
+                                  sort_dir=["asc", "desc"])
+
+    def test_list_security_group_rules_limit(self):
+        resources = "security_group_rules"
+        cmd = securitygroup.ListSecurityGroupRule(
+            test_cli20.MyApp(sys.stdout), None)
+        self.mox.StubOutWithMock(securitygroup.ListSecurityGroupRule,
+                                 "extend_list")
+        securitygroup.ListSecurityGroupRule.extend_list(mox.IsA(list),
+                                                        mox.IgnoreArg())
+        self._test_list_resources(resources, cmd, page_size=1000)
 
     def test_show_security_group_rule(self):
         resource = 'security_group_rule'
@@ -168,11 +243,11 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
                     'X-Auth-Token', test_cli20.TOKEN)).AndReturn(resp)
 
         # Setup the default data
-        _data = {'cols': ['id', 'security_group_id', 'source_group_id'],
+        _data = {'cols': ['id', 'security_group_id', 'remote_group_id'],
                  'data': [('ruleid1', 'myid1', 'myid1'),
                           ('ruleid2', 'myid2', 'myid3'),
                           ('ruleid3', 'myid2', 'myid2')]}
-        _expected = {'cols': ['id', 'security_group', 'source_group'],
+        _expected = {'cols': ['id', 'security_group', 'remote_group'],
                      'data': [('ruleid1', 'group1', 'group1'),
                               ('ruleid2', 'group2', 'group3'),
                               ('ruleid3', 'group2', 'group2')]}
@@ -184,7 +259,6 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         expected['cols'] = expected.get('cols', _expected['cols'])
         expected['data'] = expected.get('data', _expected['data'])
 
-        resources = "security_group_rules"
         cmd = securitygroup.ListSecurityGroupRule(
             test_cli20.MyApp(sys.stdout), None)
         self.mox.StubOutWithMock(cmd, 'get_client')
@@ -196,11 +270,18 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         setup_list_stub('security_group_rules', list_data, query)
         if conv:
             cmd.get_client().AndReturn(self.client)
+            sec_ids = set()
+            for n in data['data']:
+                sec_ids.add(n[1])
+                sec_ids.add(n[2])
+            filters = ''
+            for id in sec_ids:
+                filters = filters + "&id=%s" % id
             setup_list_stub('security_groups',
                             [{'id': 'myid1', 'name': 'group1'},
                              {'id': 'myid2', 'name': 'group2'},
                              {'id': 'myid3', 'name': 'group3'}],
-                            query='fields=id&fields=name')
+                            query='fields=id&fields=name' + filters)
         self.mox.ReplayAll()
 
         cmd_parser = cmd.get_parser('list_security_group_rules')
@@ -221,7 +302,7 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
         self._test_list_security_group_rules_extend()
 
     def test_list_security_group_rules_extend_no_nameconv(self):
-        expected = {'cols': ['id', 'security_group_id', 'source_group_id'],
+        expected = {'cols': ['id', 'security_group_id', 'remote_group_id'],
                     'data': [('ruleid1', 'myid1', 'myid1'),
                              ('ruleid2', 'myid2', 'myid3'),
                              ('ruleid3', 'myid2', 'myid2')]}
@@ -230,19 +311,23 @@ class CLITestV20SecurityGroups(test_cli20.CLITestV20Base):
                                                     args=args, conv=False)
 
     def test_list_security_group_rules_extend_with_columns(self):
-        args = '-c id -c security_group_id -c source_group_id'.split()
+        args = '-c id -c security_group_id -c remote_group_id'.split()
         self._test_list_security_group_rules_extend(args=args)
 
     def test_list_security_group_rules_extend_with_columns_no_id(self):
-        args = '-c id -c security_group -c source_group'.split()
+        args = '-c id -c security_group -c remote_group'.split()
         self._test_list_security_group_rules_extend(args=args)
 
     def test_list_security_group_rules_extend_with_fields(self):
-        args = '-F id -F security_group_id -F source_group_id'.split()
+        args = '-F id -F security_group_id -F remote_group_id'.split()
         self._test_list_security_group_rules_extend(args=args,
                                                     query_field=True)
 
     def test_list_security_group_rules_extend_with_fields_no_id(self):
-        args = '-F id -F security_group -F source_group'.split()
+        args = '-F id -F security_group -F remote_group'.split()
         self._test_list_security_group_rules_extend(args=args,
                                                     query_field=True)
+
+
+class CLITestV20SecurityGroupsXML(CLITestV20SecurityGroupsJSON):
+    format = 'xml'
