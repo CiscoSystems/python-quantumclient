@@ -19,6 +19,7 @@ import argparse
 import logging
 import re
 
+from cliff.formatters import table
 from cliff import lister
 from cliff import show
 
@@ -90,12 +91,45 @@ def add_show_list_common_argument(parser):
         default=[])
 
 
-def add_extra_argument(parser, name, _help):
+def add_pagination_argument(parser):
     parser.add_argument(
-        name,
-        nargs=argparse.REMAINDER,
-        help=_help + ': --key1 [type=int|bool|...] value '
-                     '[--key2 [type=int|bool|...] value ...]')
+        '-P', '--page-size',
+        dest='page_size', metavar='SIZE', type=int,
+        help=("specify retrieve unit of each request, then split one request "
+              "to several requests"),
+        default=None)
+
+
+def add_sorting_argument(parser):
+    parser.add_argument(
+        '--sort-key',
+        dest='sort_key', metavar='FIELD',
+        action='append',
+        help=("sort list by specified fields (This option can be repeated), "
+              "The number of sort_dir and sort_key should match each other, "
+              "more sort_dir specified will be omitted, less will be filled "
+              "with asc as default direction "),
+        default=[])
+    parser.add_argument(
+        '--sort-dir',
+        dest='sort_dir', metavar='{asc,desc}',
+        help=("sort list in specified directions "
+              "(This option can be repeated)"),
+        action='append',
+        default=[],
+        choices=['asc', 'desc'])
+
+
+def is_number(s):
+    try:
+        float(s)  # for int, long and float
+    except ValueError:
+        try:
+            complex(s)  # for complex
+        except ValueError:
+            return False
+
+    return True
 
 
 def parse_args_to_dict(values_specs):
@@ -141,7 +175,10 @@ def parse_args_to_dict(values_specs):
             current_arg = _options[_item]
             _item = _temp
         elif _item.startswith('type='):
-            if current_arg is not None:
+            if current_arg is None:
+                raise exceptions.CommandError(
+                    "invalid values_specs %s" % ' '.join(values_specs))
+            if 'type' not in current_arg:
                 _type_str = _item.split('=', 2)[1]
                 current_arg.update({'type': eval(_type_str)})
                 if _type_str == 'bool':
@@ -149,14 +186,12 @@ def parse_args_to_dict(values_specs):
                 elif _type_str == 'dict':
                     current_arg.update({'type': utils.str2dict})
                 continue
-            else:
-                raise exceptions.CommandError(
-                    "invalid values_specs %s" % ' '.join(values_specs))
         elif _item == 'list=true':
             _list_flag = True
             continue
         if not _item.startswith('--'):
-            if not current_item or '=' in current_item:
+            if (not current_item or '=' in current_item or
+                _item.startswith('-') and not is_number(_item)):
                 raise exceptions.CommandError(
                     "Invalid values_specs %s" % ' '.join(values_specs))
             _value_number += 1
@@ -212,10 +247,35 @@ def _merge_args(qCmd, parsed_args, _extra_values, value_specs):
                             _extra_values.pop(key)
 
 
+def update_dict(obj, dict, attributes):
+    for attribute in attributes:
+        if hasattr(obj, attribute) and getattr(obj, attribute):
+            dict[attribute] = getattr(obj, attribute)
+
+
+class TableFormater(table.TableFormatter):
+    """This class is used to keep consistency with prettytable 0.6.
+
+    https://bugs.launchpad.net/python-quantumclient/+bug/1165962
+    """
+    def emit_list(self, column_names, data, stdout, parsed_args):
+        if column_names:
+            super(TableFormater, self).emit_list(column_names, data, stdout,
+                                                 parsed_args)
+        else:
+            stdout.write('\n')
+
+
 class QuantumCommand(command.OpenStackCommand):
     api = 'network'
     log = logging.getLogger(__name__ + '.QuantumCommand')
     values_specs = []
+    json_indent = None
+
+    def __init__(self, app, app_args):
+        super(QuantumCommand, self).__init__(app, app_args)
+        if hasattr(self, 'formatters'):
+            self.formatters['table'] = TableFormater()
 
     def get_client(self):
         return self.app.client_manager.quantum
@@ -239,14 +299,21 @@ class QuantumCommand(command.OpenStackCommand):
         if self.resource in data:
             for k, v in data[self.resource].iteritems():
                 if isinstance(v, list):
-                    value = '\n'.join(utils.dumps(i) if isinstance(i, dict)
-                                      else str(i) for i in v)
+                    value = '\n'.join(utils.dumps(
+                        i, indent=self.json_indent) if isinstance(i, dict)
+                        else str(i) for i in v)
                     data[self.resource][k] = value
                 elif isinstance(v, dict):
-                    value = utils.dumps(v)
+                    value = utils.dumps(v, indent=self.json_indent)
                     data[self.resource][k] = value
                 elif v is None:
                     data[self.resource][k] = ''
+
+    def add_known_arguments(self, parser):
+        pass
+
+    def args2body(self, parsed_args):
+        return {}
 
 
 class CreateCommand(QuantumCommand, show.ShowOne):
@@ -269,12 +336,6 @@ class CreateCommand(QuantumCommand, show.ShowOne):
         self.add_known_arguments(parser)
         return parser
 
-    def add_known_arguments(self, parser):
-        pass
-
-    def args2body(self, parsed_args):
-        return {}
-
     def get_data(self, parsed_args):
         self.log.debug('get_data(%s)' % parsed_args)
         quantum_client = self.get_client()
@@ -291,7 +352,7 @@ class CreateCommand(QuantumCommand, show.ShowOne):
         # {u'network': {u'id': u'e9424a76-6db4-4c93-97b6-ec311cd51f19'}}
         info = self.resource in data and data[self.resource] or None
         if info:
-            print >>self.app.stdout, _('Created a new %s:' % self.resource)
+            print >>self.app.stdout, _('Created a new %s:') % self.resource
         else:
             info = {'': ''}
         return zip(*sorted(info.iteritems()))
@@ -308,27 +369,32 @@ class UpdateCommand(QuantumCommand):
     def get_parser(self, prog_name):
         parser = super(UpdateCommand, self).get_parser(prog_name)
         parser.add_argument(
-            'id', metavar=self.resource,
+            'id', metavar=self.resource.upper(),
             help='ID or name of %s to update' % self.resource)
-        add_extra_argument(parser, 'value_specs',
-                           'new values for the %s' % self.resource)
+        self.add_known_arguments(parser)
         return parser
 
     def run(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         quantum_client = self.get_client()
         quantum_client.format = parsed_args.request_format
-        value_specs = parsed_args.value_specs
-        if not value_specs:
+        _extra_values = parse_args_to_dict(self.values_specs)
+        _merge_args(self, parsed_args, _extra_values,
+                    self.values_specs)
+        body = self.args2body(parsed_args)
+        if self.resource in body:
+            body[self.resource].update(_extra_values)
+        else:
+            body[self.resource] = _extra_values
+        if not body[self.resource]:
             raise exceptions.CommandError(
                 "Must specify new values to update %s" % self.resource)
-        data = {self.resource: parse_args_to_dict(value_specs)}
         _id = find_resourceid_by_name_or_id(quantum_client,
                                             self.resource,
                                             parsed_args.id)
         obj_updator = getattr(quantum_client,
                               "update_%s" % self.resource)
-        obj_updator(_id, data)
+        obj_updator(_id, body)
         print >>self.app.stdout, (
             _('Updated %(resource)s: %(id)s') %
             {'id': parsed_args.id, 'resource': self.resource})
@@ -352,7 +418,7 @@ class DeleteCommand(QuantumCommand):
         else:
             help_str = 'ID of %s to delete'
         parser.add_argument(
-            'id', metavar=self.resource,
+            'id', metavar=self.resource.upper(),
             help=help_str % self.resource)
         return parser
 
@@ -382,36 +448,62 @@ class ListCommand(QuantumCommand, lister.Lister):
     api = 'network'
     resource = None
     log = None
-    _formatters = None
+    _formatters = {}
     list_columns = []
+    unknown_parts_flag = True
+    pagination_support = False
+    sorting_support = False
 
     def get_parser(self, prog_name):
         parser = super(ListCommand, self).get_parser(prog_name)
         add_show_list_common_argument(parser)
-        add_extra_argument(parser, 'filter_specs', 'filters options')
+        if self.pagination_support:
+            add_pagination_argument(parser)
+        if self.sorting_support:
+            add_sorting_argument(parser)
         return parser
+
+    def args2search_opts(self, parsed_args):
+        search_opts = {}
+        fields = parsed_args.fields
+        if parsed_args.fields:
+            search_opts.update({'fields': fields})
+        if parsed_args.show_details:
+            search_opts.update({'verbose': 'True'})
+        return search_opts
+
+    def call_server(self, quantum_client, search_opts, parsed_args):
+        obj_lister = getattr(quantum_client,
+                             "list_%ss" % self.resource)
+        data = obj_lister(**search_opts)
+        return data
 
     def retrieve_list(self, parsed_args):
         """Retrieve a list of resources from Quantum server"""
         quantum_client = self.get_client()
-        search_opts = parse_args_to_dict(parsed_args.filter_specs)
-        self.log.debug('search options: %s', search_opts)
         quantum_client.format = parsed_args.request_format
-        fields = parsed_args.fields
-        extra_fields = search_opts.get('fields', [])
-        if extra_fields:
-            if isinstance(extra_fields, list):
-                fields.extend(extra_fields)
-            else:
-                fields.append(extra_fields)
-        if fields:
-            search_opts.update({'fields': fields})
-        if parsed_args.show_details:
-            search_opts.update({'verbose': 'True'})
-        obj_lister = getattr(quantum_client,
-                             "list_%ss" % self.resource)
-        data = obj_lister(**search_opts)
-
+        _extra_values = parse_args_to_dict(self.values_specs)
+        _merge_args(self, parsed_args, _extra_values,
+                    self.values_specs)
+        search_opts = self.args2search_opts(parsed_args)
+        search_opts.update(_extra_values)
+        if self.pagination_support:
+            page_size = parsed_args.page_size
+            if page_size:
+                search_opts.update({'limit': page_size})
+        if self.sorting_support:
+            keys = parsed_args.sort_key
+            if keys:
+                search_opts.update({'sort_key': keys})
+            dirs = parsed_args.sort_dir
+            len_diff = len(keys) - len(dirs)
+            if len_diff > 0:
+                dirs += ['asc'] * len_diff
+            elif len_diff < 0:
+                dirs = dirs[:len(keys)]
+            if dirs:
+                search_opts.update({'sort_dir': dirs})
+        data = self.call_server(quantum_client, search_opts, parsed_args)
         collection = self.resource + "s"
         return data.get(collection, [])
 
@@ -465,7 +557,7 @@ class ShowCommand(QuantumCommand, show.ShowOne):
         else:
             help_str = 'ID of %s to look up'
         parser.add_argument(
-            'id', metavar=self.resource,
+            'id', metavar=self.resource.upper(),
             help=help_str % self.resource)
         return parser
 
